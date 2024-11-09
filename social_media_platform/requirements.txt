@@ -1,0 +1,9 @@
+authlib~=1.2
+django~=4.2
+python-dotenv~=1.0
+requests~=2.31
+djangorestframework
+psycopg2-binary
+django-cors-headers
+python-jose
+djangorestframework-simplejwt
