@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Social Media Platform - Feed</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
+        .navbar { background-color: #4267B2; color: white; padding: 10px; text-align: center; }
+        .feed { width: 60%; margin: auto; padding: 20px; background-color: white; }
+        .post { border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .action { cursor: pointer; color: #4267B2; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Social Media Feed</h1>
+        <button id="login-btn" style="display: none;" onclick="login()">Login</button>
+        <button id="logout-btn" style="display: none;" onclick="logout()">Logout</button>
+    </div>
+    <div class="feed" id="feed"></div>
+
+    <script>
+        function checkAuthStatus() {
+            const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+            document.getElementById('login-btn').style.display = isAuthenticated ? 'none' : 'block';
+            document.getElementById('logout-btn').style.display = isAuthenticated ? 'block' : 'none';
+            return isAuthenticated;
+        }
+
+        async function fetchFeed() {
+            const response = await fetch('/api/posts/');
+            const data = await response.json();
+            const feedDiv = document.getElementById('feed');
+            feedDiv.innerHTML = '';
+            data.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.classList.add('post');
+                postDiv.innerHTML = `
+                    <h3>${post.user}</h3>
+                    <p>${post.content}</p>
+                    <p>Likes: ${post.likes}</p>
+                    <span class="action" onclick="likePost(${post.id})">Like</span>
+                    <span class="action" onclick="commentOnPost(${post.id})">Comment</span>
+                `;
+                feedDiv.appendChild(postDiv);
+            });
+        }
+
+        async function likePost(postId) {
+            if (!checkAuthStatus()) {
+                login();
+                return;
+            }
+            const csrftoken = getCookie('csrftoken');
+            try {
+                const response = await fetch(`/api/posts/${postId}/like/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
+                if (response.ok) {
+                    fetchFeed();  // Refresh the feed to update the like count
+                } else {
+                    console.error('Failed to like the post');
+                }
+            } catch (error) {
+                console.error('Error liking the post:', error);
+            }
+        }
+
+        function login() {
+            window.location.href = '/auth/login/';
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isAuthenticated');
+            checkAuthStatus();
+            fetchFeed();
+            window.location.href = '/auth/logout/';
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Set the authentication status upon login
+        if (document.cookie.includes('isAuthenticated=true')) {
+            sessionStorage.setItem('isAuthenticated', 'true');
+        }
+
+        // Initial setup
+        checkAuthStatus();
+        fetchFeed();
+    </script>
+</body>
+</html>

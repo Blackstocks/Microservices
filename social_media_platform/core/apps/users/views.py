@@ -1,14 +1,12 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from .models import UserProfile
+from .serializers import UserProfileSerializer
 
-class UserProfileView(APIView):
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        user = request.user
-        data = {
-            "username": user.username,
-            "email": user.email,
-        }
-        return Response(data)
+    def get_object(self):
+        return self.request.user.profile

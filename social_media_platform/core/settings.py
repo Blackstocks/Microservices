@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Secret key and debug setting
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'blackstocks')  
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Installed apps
@@ -57,7 +58,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "core/templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -111,10 +112,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Using SimpleJWT for authentication
+        'core.auth0backend.Auth0JSONWebTokenAuthentication',  # Custom Auth0 authentication
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',  # Default permission class
+        'rest_framework.permissions.IsAuthenticated',  # Require auth by default
     ),
 }
 
