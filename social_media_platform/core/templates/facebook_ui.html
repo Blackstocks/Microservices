@@ -9,6 +9,8 @@
         .feed { width: 60%; margin: auto; padding: 20px; background-color: white; }
         .post { border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
         .action { cursor: pointer; color: #4267B2; margin-right: 10px; }
+        .comments { font-size: 0.9em; color: #555; margin-top: 5px; }
+        .comment { margin-left: 10px; padding: 5px 0; }
     </style>
 </head>
 <body>
@@ -38,9 +40,12 @@
                 postDiv.innerHTML = `
                     <h3>${post.user}</h3>
                     <p>${post.content}</p>
-                    <p>Likes: ${post.likes}</p>
+                    <p>Likes: ${post.likes_count}</p>
                     <span class="action" onclick="likePost(${post.id})">Like</span>
                     <span class="action" onclick="commentOnPost(${post.id})">Comment</span>
+                    <div class="comments" id="comments-${post.id}">
+                        ${post.comments.map(comment => `<div class="comment">${comment.user}: ${comment.content}</div>`).join('')}
+                    </div>
                 `;
                 feedDiv.appendChild(postDiv);
             });
@@ -51,21 +56,56 @@
                 login();
                 return;
             }
+
             const csrftoken = getCookie('csrftoken');
             try {
                 const response = await fetch(`/api/posts/${postId}/like/`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': csrftoken
-                    }
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'  // Include session credentials
                 });
                 if (response.ok) {
-                    fetchFeed();  // Refresh the feed to update the like count
+                    fetchFeed();  // Refresh the feed to update like count
                 } else {
-                    console.error('Failed to like the post');
+                    const result = await response.json();
+                    console.error('Failed to like the post', result);
                 }
             } catch (error) {
                 console.error('Error liking the post:', error);
+            }
+        }
+
+        async function commentOnPost(postId) {
+            if (!checkAuthStatus()) {
+                login();
+                return;
+            }
+
+            const comment = prompt("Enter your comment:");
+            if (comment) {
+                const csrftoken = getCookie('csrftoken');
+                try {
+                    const response = await fetch(`/api/posts/${postId}/comment/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ content: comment })
+                    });
+                    if (response.ok) {
+                        fetchFeed();  // Refresh feed to show the new comment
+                    } else {
+                        const result = await response.json();
+                        console.error('Failed to add comment', result);
+                    }
+                } catch (error) {
+                    console.error('Error adding comment:', error);
+                }
             }
         }
 
@@ -95,12 +135,10 @@
             return cookieValue;
         }
 
-        // Set the authentication status upon login
         if (document.cookie.includes('isAuthenticated=true')) {
             sessionStorage.setItem('isAuthenticated', 'true');
         }
 
-        // Initial setup
         checkAuthStatus();
         fetchFeed();
     </script>
